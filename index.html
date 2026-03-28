@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DR — Bureau Privé</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◆</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #FAF9F7; color: #1A1A1A;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::placeholder { color: #B8B5B0; }
+    input, textarea, button { font-family: inherit; }
+    textarea { resize: none; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .notification { animation: fadeIn 0.3s ease; }
+    .card-enter { animation: slideUp 0.3s ease; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #D4D1CC; border-radius: 4px; }
+    ::selection { background: #B8960C33; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+    // ═══════════════════════════════════════════════════
+    // SUPABASE CONFIG — Replace these two values!
+    // Find them in: Supabase → Settings → API
+    // ═══════════════════════════════════════════════════
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";       // e.g. https://xxxx.supabase.co
+    const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";  // the long "anon public" key
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ─── Team ──────────────────────────────────────────
+    const TEAM = [
+      { name: "Mirella", role: "Assistante personnelle", email: "mirella@guibor.com", initials: "MI", color: "#8B7355" },
+      { name: "Karen", role: "Assistante de travail", email: "karen@guibor.com", initials: "KA", color: "#6B8E7B" },
+      { name: "Anthony", role: "Directeur financier", email: "anthony@guibor.com", initials: "AN", color: "#556B7B" },
+      { name: "Boris", role: "Associé", email: "boris@guibor.com", initials: "BO", color: "#7B6878" },
+      { name: "Adriana", role: "Personnel", email: "adriana@icnqdesign.com", initials: "AD", color: "#8B6B5B" },
+      { name: "Dominique", role: "Moi-même", email: "", initials: "DR", color: "#4A5568" },
+    ];
+    const getTeamMember = (name) => TEAM.find(t => t.name === name) || TEAM[5];
+
+    const DAYS = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+    const MONTHS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+    const formatDate = (d) => { const dt = new Date(d); return DAYS[dt.getDay()] + " " + dt.getDate() + " " + MONTHS[dt.getMonth()] + " " + dt.getFullYear(); };
+    const formatTime = (d) => new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    const PRIORITIES = { haute: "#C53030", normale: "#B8960C", basse: "#94A3B8" };
+
+    // ─── Styles ────────────────────────────────────────
+    const s = {
+      app: { maxWidth: 560, margin: "0 auto", padding: "0 24px 60px", minHeight: "100vh" },
+      header: { padding: "36px 0 28px", borderBottom: "1px solid #E8E5E0", marginBottom: 28 },
+      name: { fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 28, fontWeight: 400, letterSpacing: "0.02em" },
+      date: { fontSize: 12, color: "#9CA3AF", letterSpacing: "0.04em", marginTop: 8, fontWeight: 300 },
+      badge: { background: "#B8960C", color: "#fff", width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600 },
+      nav: { display: "flex", gap: 0, marginBottom: 28 },
+      navBtn: (a) => ({ padding: "10px 0", marginRight: 32, background: "none", border: "none", borderBottom: a ? "2px solid #B8960C" : "2px solid transparent", fontSize: 11, fontWeight: 500, letterSpacing: "0.14em", textTransform: "uppercase", color: a ? "#1A1A1A" : "#B8B5B0", cursor: "pointer", transition: "all 0.2s" }),
+      card: { background: "#FFFFFF", borderRadius: 14, padding: "22px 24px", marginBottom: 12, border: "1px solid #EDEAE6", boxShadow: "0 1px 4px rgba(0,0,0,0.03)", transition: "all 0.2s ease" },
+      input: { width: "100%", border: "none", outline: "none", fontSize: 15, color: "#1A1A1A", background: "transparent", lineHeight: 1.6, fontWeight: 300 },
+      titleInput: { width: "100%", border: "none", outline: "none", fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 400, color: "#1A1A1A", background: "transparent" },
+      btn: { border: "none", cursor: "pointer", borderRadius: 8, fontWeight: 400, transition: "all 0.2s ease", fontSize: 13, letterSpacing: "0.02em" },
+      pill: (a) => ({ padding: "7px 16px", fontSize: 12, borderRadius: 20, cursor: "pointer", background: a ? "#1A1A1A" : "transparent", color: a ? "#fff" : "#1A1A1A", border: "1px solid " + (a ? "#1A1A1A" : "#E8E5E0"), fontWeight: 400, transition: "all 0.2s", letterSpacing: "0.02em" }),
+      divider: { height: 1, background: "#EDEAE6", margin: "16px 0" },
+      label: { fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10, fontWeight: 500 },
+      notif: { position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", background: "#1A1A1A", color: "#fff", padding: "11px 28px", borderRadius: 24, fontSize: 13, zIndex: 999, letterSpacing: "0.02em", boxShadow: "0 8px 30px rgba(0,0,0,0.12)", fontWeight: 300 },
+    };
+
+    function App() {
+      const [view, setView] = useState("capture");
+      const [notes, setNotes] = useState([]);
+      const [tasks, setTasks] = useState([]);
+      const [now, setNow] = useState(new Date());
+      const [meetingTitle, setMeetingTitle] = useState("");
+      const [noteText, setNoteText] = useState("");
+      const [showAssign, setShowAssign] = useState(false);
+      const [taskText, setTaskText] = useState("");
+      const [taskPriority, setTaskPriority] = useState("normale");
+      const [taskDue, setTaskDue] = useState("");
+      const [taskFilter, setTaskFilter] = useState("all");
+      const [showDone, setShowDone] = useState(false);
+      const [notification, setNotification] = useState(null);
+      const [expandedNote, setExpandedNote] = useState(null);
+      const [loading, setLoading] = useState(true);
+
+      // Clock
+      useEffect(() => {
+        const t = setInterval(() => setNow(new Date()), 60000);
+        return () => clearInterval(t);
+      }, []);
+
+      // Load data from Supabase
+      const loadData = useCallback(async () => {
+        const [notesRes, tasksRes] = await Promise.all([
+          sb.from("notes").select("*").order("created_at", { ascending: false }),
+          sb.from("tasks").select("*").order("created_at", { ascending: false }),
+        ]);
+        if (notesRes.data) setNotes(notesRes.data);
+        if (tasksRes.data) setTasks(tasksRes.data.map(t => ({ ...t, assignee: getTeamMember(t.assignee_name) })));
+        setLoading(false);
+      }, []);
+
+      useEffect(() => { loadData(); }, [loadData]);
+
+      const notify = (msg) => {
+        setNotification(msg);
+        setTimeout(() => setNotification(null), 2200);
+      };
+
+      // ─── Save note ──────────────────────────────────
+      const saveNote = async () => {
+        if (!noteText.trim()) return;
+        const { data, error } = await sb.from("notes").insert({
+          title: meetingTitle || "Note rapide",
+          text: noteText,
+        }).select().single();
+        if (data) {
+          setNotes([data, ...notes]);
+          setMeetingTitle(""); setNoteText("");
+          notify("Note enregistrée");
+        }
+      };
+
+      // ─── Assign task ────────────────────────────────
+      const assignTask = async (person) => {
+        if (!taskText.trim()) return;
+        const { data } = await sb.from("tasks").insert({
+          text: taskText,
+          assignee_name: person.name,
+          assignee_email: person.email || null,
+          priority: taskPriority,
+          due_date: taskDue || null,
+        }).select().single();
+
+        if (data) {
+          setTasks([{ ...data, assignee: person }, ...tasks]);
+
+          // Open email
+          if (person.email) {
+            const subject = encodeURIComponent("Tâche: " + taskText);
+            const dueStr = taskDue ? "\nÉchéance: " + taskDue : "";
+            const body = encodeURIComponent(
+              "Bonjour " + person.name + ",\n\nJe te confie la tâche suivante:\n\n" +
+              taskText + "\nPriorité: " + taskPriority + dueStr +
+              "\n\nMerci,\nDominique Romano"
+            );
+            window.open("mailto:" + person.email + "?subject=" + subject + "&body=" + body, "_self");
+          }
+
+          setTaskText(""); setTaskPriority("normale"); setTaskDue("");
+          setShowAssign(false);
+          notify("Tâche confiée à " + person.name);
+        }
+      };
+
+      // ─── Toggle / Delete ────────────────────────────
+      const toggleTask = async (id) => {
+        const task = tasks.find(t => t.id === id);
+        if (!task) return;
+        await sb.from("tasks").update({ done: !task.done }).eq("id", id);
+        setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+      };
+
+      const deleteTask = async (id) => {
+        await sb.from("tasks").delete().eq("id", id);
+        setTasks(tasks.filter(t => t.id !== id));
+      };
+
+      const deleteNote = async (id) => {
+        await sb.from("notes").delete().eq("id", id);
+        setNotes(notes.filter(n => n.id !== id));
+      };
+
+      const filtered = tasks.filter(t => {
+        if (!showDone && t.done) return false;
+        return taskFilter === "all" || t.assignee?.name === taskFilter;
+      });
+      const pending = tasks.filter(t => !t.done).length;
+
+      if (loading) {
+        return (
+          <div style={{ ...s.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <p style={{ color: "#B8B5B0", fontSize: 14, fontWeight: 300 }}>Chargement...</p>
+          </div>
+        );
+      }
+
+      return (
+        <div style={s.app}>
+          {notification && <div className="notification" style={s.notif}>{notification}</div>}
+
+          {/* Header */}
+          <div style={s.header}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <h1 style={s.name}>Dominique Romano</h1>
+                <p style={s.date}>{formatDate(now)} — {formatTime(now)}</p>
+              </div>
+              {pending > 0 && <div style={s.badge}>{pending}</div>}
+            </div>
+          </div>
+
+          {/* Nav */}
+          <div style={s.nav}>
+            {[["capture","Capturer"],["tasks","Tâches"],["notes","Notes"]].map(([k,l]) => (
+              <button key={k} style={s.navBtn(view===k)} onClick={() => setView(k)}>{l}</button>
+            ))}
+          </div>
+
+          {/* ═══════════ CAPTURE ═══════════ */}
+          {view === "capture" && (
+            <div>
+              <div className="card-enter" style={{...s.card, padding: "18px 24px"}}>
+                <input style={s.titleInput} placeholder="Réunion, appel, idée..."
+                  value={meetingTitle} onChange={e => setMeetingTitle(e.target.value)} />
+              </div>
+
+              <div className="card-enter" style={s.card}>
+                <textarea style={{...s.input, minHeight: 150}} placeholder="Vos notes ici..."
+                  value={noteText} onChange={e => setNoteText(e.target.value)} />
+                <div style={s.divider} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                  <button style={{ ...s.btn, padding: "9px 22px", background: noteText.trim() ? "#1A1A1A" : "#EDEAE6", color: noteText.trim() ? "#fff" : "#B8B5B0" }}
+                    onClick={saveNote}>Enregistrer</button>
+                  <button style={{ ...s.btn, padding: "9px 22px", background: "transparent", color: "#B8960C", border: "1px solid #B8960C" }}
+                    onClick={() => setShowAssign(!showAssign)}>
+                    {showAssign ? "Fermer" : "+ Tâche"}
+                  </button>
+                </div>
+              </div>
+
+              {showAssign && (
+                <div className="card-enter" style={{...s.card, borderLeft: "3px solid #B8960C"}}>
+                  <textarea style={{...s.input, minHeight: 44, marginBottom: 14}}
+                    placeholder="Décrire la tâche..." value={taskText}
+                    onChange={e => setTaskText(e.target.value)} />
+                  <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+                    {Object.entries(PRIORITIES).map(([key, col]) => (
+                      <button key={key} style={{ ...s.btn, padding: "5px 14px", fontSize: 11, borderRadius: 16, background: taskPriority === key ? col : "transparent", color: taskPriority === key ? "#fff" : col, border: "1px solid " + col, textTransform: "capitalize" }}
+                        onClick={() => setTaskPriority(key)}>{key}</button>
+                    ))}
+                    <input type="date" value={taskDue} onChange={e => setTaskDue(e.target.value)}
+                      style={{ border: "1px solid #EDEAE6", borderRadius: 16, padding: "5px 12px", fontSize: 11, color: "#1A1A1A", background: "transparent", outline: "none" }} />
+                  </div>
+                  <p style={s.label}>Assigner à</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {TEAM.map(person => (
+                      <button key={person.name} style={{ ...s.btn, padding: "12px 16px", background: "#FAFAF8", border: "1px solid #EDEAE6", borderRadius: 10, display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}
+                        onClick={() => assignTask(person)}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = person.color; e.currentTarget.style.background = "#fff"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#EDEAE6"; e.currentTarget.style.background = "#FAFAF8"; }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: person.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", flexShrink: 0 }}>{person.initials}</div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#1A1A1A" }}>{person.name}</div>
+                          <div style={{ fontSize: 10, color: "#9CA3AF", marginTop: 1 }}>{person.role}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {tasks.filter(t => !t.done).length > 0 && (
+                <div style={{ marginTop: 28 }}>
+                  <p style={s.label}>En cours</p>
+                  {tasks.filter(t => !t.done).slice(0, 3).map(t => (
+                    <div key={t.id} className="card-enter" style={{ ...s.card, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+                      onClick={() => toggleTask(t.id)}>
+                      <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid " + (t.assignee?.color || "#999"), flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.text}</p>
+                        <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>{t.assignee?.name}{t.due_date && " — " + t.due_date}</p>
+                      </div>
+                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: PRIORITIES[t.priority], flexShrink: 0 }} />
+                    </div>
+                  ))}
+                  {tasks.filter(t => !t.done).length > 3 && (
+                    <button style={{ ...s.btn, background: "transparent", color: "#B8960C", padding: "8px 0", fontSize: 12, border: "none" }}
+                      onClick={() => setView("tasks")}>Voir toutes les tâches →</button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════ TASKS ═══════════ */}
+          {view === "tasks" && (
+            <div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+                <button style={s.pill(taskFilter === "all")} onClick={() => setTaskFilter("all")}>
+                  Toutes ({tasks.filter(t => !t.done).length})
+                </button>
+                {TEAM.map(p => {
+                  const c = tasks.filter(t => !t.done && t.assignee?.name === p.name).length;
+                  if (c === 0 && taskFilter !== p.name) return null;
+                  return <button key={p.name} style={s.pill(taskFilter === p.name)}
+                    onClick={() => setTaskFilter(taskFilter === p.name ? "all" : p.name)}>{p.name} ({c})</button>;
+                })}
+              </div>
+              <button style={{ ...s.btn, background: "transparent", color: "#9CA3AF", fontSize: 11, padding: 0, marginBottom: 18, border: "none" }}
+                onClick={() => setShowDone(!showDone)}>{showDone ? "Masquer terminées" : "Voir terminées"}</button>
+
+              {filtered.length === 0 && (
+                <div style={{ textAlign: "center", padding: "50px 0", color: "#C4C1BC" }}>
+                  <div style={{ fontSize: 36, marginBottom: 8 }}>✓</div>
+                  <p style={{ fontSize: 14, fontWeight: 300 }}>Aucune tâche en attente</p>
+                </div>
+              )}
+              {filtered.map(t => (
+                <div key={t.id} className="card-enter" style={{ ...s.card, padding: "16px 20px", opacity: t.done ? 0.45 : 1, display: "flex", gap: 14, alignItems: "flex-start" }}>
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", marginTop: 1, flexShrink: 0, border: "2px solid " + (t.done ? "#C4C1BC" : (t.assignee?.color || "#999")), background: t.done ? "#C4C1BC" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10 }}
+                    onClick={() => toggleTask(t.id)}>{t.done && "✓"}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 400, lineHeight: 1.5, textDecoration: t.done ? "line-through" : "none" }}>{t.text}</p>
+                    <div style={{ display: "flex", gap: 12, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, color: t.assignee?.color || "#999", fontWeight: 500 }}>{t.assignee?.name}</span>
+                      <span style={{ fontSize: 9, color: PRIORITIES[t.priority], textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>{t.priority}</span>
+                      {t.due_date && <span style={{ fontSize: 11, color: "#9CA3AF" }}>{t.due_date}</span>}
+                    </div>
+                  </div>
+                  <button style={{ ...s.btn, background: "transparent", color: "#C4C1BC", fontSize: 18, padding: "0 4px", border: "none", lineHeight: 1 }}
+                    onClick={() => deleteTask(t.id)}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ═══════════ NOTES ═══════════ */}
+          {view === "notes" && (
+            <div>
+              {notes.length === 0 && (
+                <div style={{ textAlign: "center", padding: "50px 0", color: "#C4C1BC" }}>
+                  <p style={{ fontSize: 14, fontWeight: 300, marginBottom: 14 }}>Aucune note pour le moment</p>
+                  <button style={{ ...s.btn, padding: "9px 22px", background: "#1A1A1A", color: "#fff" }}
+                    onClick={() => setView("capture")}>Commencer</button>
+                </div>
+              )}
+              {notes.map(n => (
+                <div key={n.id} className="card-enter" style={{...s.card, cursor: "pointer"}}
+                  onClick={() => setExpandedNote(expandedNote === n.id ? null : n.id)}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 18, fontWeight: 500, marginBottom: 4 }}>{n.title}</h3>
+                      <p style={{ fontSize: 11, color: "#9CA3AF" }}>{formatDate(n.created_at)} — {formatTime(n.created_at)}</p>
+                    </div>
+                    <button style={{ ...s.btn, background: "transparent", color: "#C4C1BC", fontSize: 16, padding: "0 4px", border: "none" }}
+                      onClick={(e) => { e.stopPropagation(); deleteNote(n.id); }}>×</button>
+                  </div>
+                  {expandedNote === n.id ? (
+                    <p style={{ marginTop: 14, fontSize: 14, lineHeight: 1.8, color: "#4A4A4A", whiteSpace: "pre-wrap", fontWeight: 300 }}>{n.text}</p>
+                  ) : (
+                    <p style={{ marginTop: 10, fontSize: 13, color: "#9CA3AF", fontWeight: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.text}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ textAlign: "center", marginTop: 48, paddingTop: 24, borderTop: "1px solid #EDEAE6" }}>
+            <p style={{ fontSize: 9, color: "#C4C1BC", letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 500 }}>DR — Bureau Privé</p>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
