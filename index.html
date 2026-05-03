@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bureau Privé — Dominique Romano</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#FAFAF7;
+  --card:#FFFFFF;
+  --text:#2C2C2C;
+  --soft:#8A8A8A;
+  --gold:#B8976A;
+  --gold-light:#F5F0E8;
+  --border:#E8E4DE;
+  --danger:#C0392B;
+  --green:#27AE60;
+  --haute:#C0392B;
+  --normale:#B8976A;
+  --basse:#8A8A8A;
+  --radius:10px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#2C2C2C;}
+.login-box{text-align:center;padding:48px 40px;background:var(--card);border-radius:16px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.login-box h1{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.login-box p{font-size:13px;color:var(--soft);margin-bottom:28px;}
+.login-box input{width:100%;padding:13px 16px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;margin-bottom:12px;outline:none;transition:border 0.2s;}
+.login-box input:focus{border-color:var(--gold);}
+.login-box button{width:100%;padding:13px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:background 0.2s;}
+.login-box button:hover{background:#A6845E;}
+.login-error{color:var(--danger);font-size:12px;margin-top:8px;display:none;}
+
+/* APP */
+#app{display:none;}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+header h1{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--text);}
+header span{font-size:12px;color:var(--soft);}
+.logout-btn{font-size:12px;color:var(--soft);cursor:pointer;border:none;background:none;text-decoration:underline;}
+.logout-btn:hover{color:var(--text);}
+
+/* TABS */
+.tabs{background:var(--card);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;padding:0 16px;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab-btn{padding:13px 18px;font-size:13px;font-weight:500;color:var(--soft);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;font-family:'DM Sans',sans-serif;}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-btn:hover{color:var(--text);}
+
+/* MAIN */
+.main{max-width:720px;margin:0 auto;padding:24px 18px;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;transition:box-shadow 0.2s;}
+.card:hover{box-shadow:0 2px 12px rgba(0,0,0,0.04);}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.card-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;}
+.card-date{font-size:11px;color:var(--soft);}
+.card-notes{font-size:13px;color:var(--soft);line-height:1.6;white-space:pre-wrap;margin-bottom:10px;}
+.card-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.card-actions button{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--soft);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.card-actions button:hover{border-color:var(--gold);color:var(--gold);}
+.card-actions button.danger:hover{border-color:var(--danger);color:var(--danger);}
+
+/* FORM */
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;}
+.form-card h2{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;margin-bottom:16px;color:var(--text);}
+.form-row{margin-bottom:14px;}
+.form-row label{display:block;font-size:12px;font-weight:500;color:var(--soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
+.form-row input,.form-row textarea,.form-row select{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border 0.2s;background:#fff;}
+.form-row input:focus,.form-row textarea:focus,.form-row select:focus{border-color:var(--gold);}
+.form-row textarea{resize:vertical;min-height:100px;}
+.btn{padding:11px 24px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.2s;}
+.btn-gold{background:var(--gold);color:#fff;}
+.btn-gold:hover{background:#A6845E;}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--soft);}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);}
+.btn-row{display:flex;gap:10px;margin-top:6px;}
+
+/* TASKS */
+.task-item{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;}
+.task-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);cursor:pointer;flex-shrink:0;margin-top:2px;transition:all 0.2s;}
+.task-check.done{background:var(--green);border-color:var(--green);}
+.task-body{flex:1;}
+.task-desc{font-size:14px;margin-bottom:4px;}
+.task-desc.done{text-decoration:line-through;color:var(--soft);}
+.task-meta{font-size:11px;color:var(--soft);display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.priority-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+.priority-haute{background:#FDECEA;color:var(--haute);}
+.priority-normale{background:var(--gold-light);color:var(--normale);}
+.priority-basse{background:#F0F0F0;color:var(--basse);}
+.task-actions{display:flex;gap:6px;flex-shrink:0;}
+.task-actions button{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--soft);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.task-actions button:hover{border-color:var(--danger);color:var(--danger);}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.filter-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);font-size:12px;font-family:'DM Sans',sans-serif;color:var(--soft);cursor:pointer;transition:all 0.2s;}
+.filter-btn.active{background:var(--gold);color:#fff;border-color:var(--gold);}
+
+/* SEARCH BAR */
+.search-bar{display:flex;gap:8px;margin-bottom:16px;}
+.search-bar input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;background:#fff;}
+.search-bar input:focus{border-color:var(--gold);}
+.search-bar input[type="date"]{max-width:160px;}
+.search-clear{padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--soft);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;}
+.search-clear:hover{border-color:var(--gold);color:var(--gold);}
+.search-count{font-size:11px;color:var(--soft);margin-bottom:10px;}
+mark{background:var(--gold-light);color:var(--text);border-radius:2px;padding:0 2px;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:48px 20px;color:var(--soft);font-size:14px;}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:0.4;}
+
+/* MEETING TASK LIST */
+.meeting-tasks{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.meeting-tasks h4{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--soft);margin-bottom:8px;}
+.mini-task{font-size:12px;padding:6px 10px;background:var(--gold-light);border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;}
+.mini-task .assignee{color:var(--gold);font-weight:500;}
+
+/* ADD TASK INLINE */
+.add-task-form{background:var(--gold-light);border-radius:8px;padding:14px;margin-top:8px;}
+.add-task-form .form-row{margin-bottom:10px;}
+.add-task-form .form-row:last-of-type{margin-bottom:0;}
+.inline-row{display:flex;gap:8px;}
+.inline-row>*{flex:1;}
+
+/* SUMMARIZE BUTTON */
+.summarize-row{display:flex;gap:8px;margin-top:8px;align-items:center;}
+.btn-summarize{padding:9px 18px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--gold);background:var(--gold-light);color:var(--gold);transition:all 0.2s;}
+.btn-summarize:hover{background:var(--gold);color:#fff;}
+.btn-summarize:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-summarize.loading{pointer-events:none;opacity:0.6;}
+.summary-box{background:var(--gold-light);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:var(--text);}
+.summary-box h4{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;margin-bottom:8px;color:var(--gold);}
+
+/* AI SETTINGS MODAL */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:9998;display:none;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--card);border-radius:12px;padding:28px;width:380px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.modal-box h3{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;margin-bottom:12px;}
+.modal-box p{font-size:12px;color:var(--soft);margin-bottom:14px;line-height:1.5;}
+.modal-box input{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-bottom:14px;}
+.modal-box input:focus{border-color:var(--gold);}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+
+/* SPEECH / MIC */
+.notes-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.notes-header label{margin-bottom:0;}
+.mic-controls{display:flex;align-items:center;gap:8px;}
+.lang-select{padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--soft);background:#fff;outline:none;cursor:pointer;}
+.lang-select:focus{border-color:var(--gold);}
+.mic-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s;position:relative;}
+.mic-btn:hover{border-color:var(--gold);}
+.mic-btn.recording{border-color:var(--danger);background:#FDECEA;animation:pulse-mic 1.5s infinite;}
+.mic-btn svg{width:16px;height:16px;fill:var(--soft);transition:fill 0.2s;}
+.mic-btn.recording svg{fill:var(--danger);}
+@keyframes pulse-mic{
+  0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,0.3);}
+  50%{box-shadow:0 0 0 8px rgba(192,57,43,0);}
+}
+.recording-indicator{font-size:11px;color:var(--danger);font-weight:500;display:none;align-items:center;gap:4px;}
+.recording-indicator.active{display:flex;}
+.rec-dot{width:6px;height:6px;border-radius:50%;background:var(--danger);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2C2C2C;color:#fff;padding:12px 24px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;}
+.toast.show{opacity:1;}
+
+/* RESPONSIVE */
+@media(max-width:480px){
+  .main{padding:16px 12px;}
+  .card{padding:14px;}
+  .form-card{padding:16px;}
+  .inline-row{flex-direction:column;}
+  header{padding:12px 16px;}
+  header h1{font-size:19px;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Bureau Privé</h1>
+    <p>Dominique Romano</p>
+    <input type="password" id="login-pass" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()">Entrer</button>
+    <div class="login-error" id="login-error">Mot de passe incorrect</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div>
+      <h1>Bureau Privé</h1>
+      <span id="header-date"></span>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Déconnexion</button>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('capturer')">Capturer</button>
+    <button class="tab-btn" onclick="switchTab('taches')">Tâches</button>
+    <button class="tab-btn" onclick="switchTab('notes')">Notes</button>
+  </div>
+
+  <div class="main" id="main-content">
+
+    <!-- CAPTURER TAB -->
+    <div class="section active" id="sec-capturer">
+      <div class="form-card">
+        <h2>Nouvelle Réunion</h2>
+        <div class="form-row">
+          <label>Titre</label>
+          <input type="text" id="meeting-title" placeholder="Ex: Réunion chantier Étoile">
+        </div>
+        <div class="form-row">
+          <label>Date</label>
+          <input type="date" id="meeting-date">
+        </div>
+        <div class="form-row">
+          <div class="notes-header">
+            <label>Notes</label>
+            <div class="mic-controls">
+              <div class="recording-indicator" id="rec-indicator"><span class="rec-dot"></span> REC</div>
+              <select class="lang-select" id="speech-lang" title="Langue">
+                <option value="fr-FR">FR</option>
+                <option value="en-US">EN</option>
+                <option value="he-IL">HE</option>
+              </select>
+              <button type="button" class="mic-btn" id="mic-btn" onclick="toggleRecording()" title="Dicter les notes">
+                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+              </button>
+            </div>
+          </div>
+          <textarea id="meeting-notes" placeholder="Points abordés, décisions prises... ou appuyez sur le micro pour dicter"></textarea>
+        </div>
+
+        <div class="summarize-row">
+          <button class="btn-summarize" id="summarize-btn" onclick="summarizeNotes()">Résumer</button>
+          <button class="btn btn-outline" style="font-size:11px;padding:6px 12px;" onclick="showAISettings()">Clé API</button>
+        </div>
+        <div id="summary-output"></div>
+
+        <div id="meeting-tasks-container"></div>
+
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn btn-outline" onclick="addTaskToMeeting()">+ Tâche</button>
+          <button class="btn btn-gold" onclick="saveMeeting()">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TACHES TAB -->
+    <div class="section" id="sec-taches">
+      <div class="filter-bar" id="filter-bar"></div>
+      <div id="tasks-list"></div>
+    </div>
+
+    <!-- NOTES TAB -->
+    <div class="section" id="sec-notes">
+      <div class="search-bar">
+        <input type="text" id="search-keyword" placeholder="Rechercher par mot-clé..." oninput="renderNotes()">
+        <input type="date" id="search-date" onchange="renderNotes()">
+        <button class="search-clear" onclick="clearSearch()">Effacer</button>
+      </div>
+      <div class="search-count" id="search-count"></div>
+      <div id="notes-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- AI SETTINGS MODAL -->
+<div class="modal-overlay" id="ai-modal">
+  <div class="modal-box">
+    <h3>Configuration AI</h3>
+    <p>Entrez votre clé API OpenAI pour activer le résumé automatique. Créez-en une sur <strong>platform.openai.com</strong> → API Keys.</p>
+    <input type="password" id="ai-key-input" placeholder="sk-...">
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeAISettings()">Annuler</button>
+      <button class="btn btn-gold" onclick="saveAIKey()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== SUPABASE CONFIG =====================
+const SUPABASE_URL = 'https://arrzaulwxwjfwamrsaiq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFycnphdWx3eHdqZndhbXJzYWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3OTg1NzIsImV4cCI6MjA5MDM3NDU3Mn0.G-j5umIR_kpy25EVidKCW9LE7d5AXm_ZQAFD-TQjOk4';
+let sb = null;
+let useSupabase = false;
+
+try {
+  if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    useSupabase = true;
+  }
+} catch(e) { console.warn('Supabase not configured, using localStorage'); }
+
+// ===================== EMAILJS CONFIG =====================
+// To enable auto-send emails, sign up at emailjs.com (free: 200 emails/month)
+// 1. Create an account at emailjs.com
+// 2. Add an Email Service (Gmail, Outlook, etc.)
+// 3. Create an Email Template with variables: {{to_email}}, {{to_name}}, {{subject}}, {{message}}
+// 4. Replace the three values below:
+const EMAILJS_PUBLIC_KEY = '';  // Your EmailJS public key
+const EMAILJS_SERVICE_ID = '';  // Your EmailJS service ID
+const EMAILJS_TEMPLATE_ID = ''; // Your EmailJS template ID
+let useEmailJS = false;
+
+try {
+  if (EMAILJS_PUBLIC_KEY) {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+    useEmailJS = true;
+  }
+} catch(e) { console.warn('EmailJS not configured, using mailto fallback'); }
+
+// ===================== DATA =====================
+const TEAM = ['Mirella','Karen','Anthony','Boris','Adriana','Dominique'];
+const EMAIL_MAP = {
+  'Mirella': 'Mirella@guibor.com',
+  'Karen': '',
+  'Anthony': '',
+  'Boris': '',
+  'Adriana': 'adriana@icnqdesign.com',
+  'Dominique': ''
+};
+const PASSWORD = 'Barres2019';
+
+let meetings = [];
+let tasks = [];
+let currentTab = 'capturer';
+let taskFilter = 'all';
+let tempMeetingTasks = [];
+
+// ===================== TOAST =====================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===================== STORAGE =====================
+async function loadData() {
+  if (useSupabase) {
+    try {
+      const [mRes, tRes] = await Promise.all([
+        sb.from('meetings').select('*').order('id',{ascending:false}).limit(1),
+        sb.from('tasks').select('*').order('id',{ascending:false}).limit(1)
+      ]);
+      if (mRes.data && mRes.data.length > 0) meetings = JSON.parse(mRes.data[0].data || '[]');
+      if (tRes.data && tRes.data.length > 0) tasks = JSON.parse(tRes.data[0].data || '[]');
+    } catch(e) {
+      console.warn('Supabase load failed, using localStorage', e);
+      loadFromLocal();
+    }
+  } else {
+    loadFromLocal();
+  }
+}
+
+function loadFromLocal() {
+  meetings = JSON.parse(localStorage.getItem('bp_meetings') || '[]');
+  tasks = JSON.parse(localStorage.getItem('bp_tasks') || '[]');
+}
+
+async function saveData() {
+  localStorage.setItem('bp_meetings', JSON.stringify(meetings));
+  localStorage.setItem('bp_tasks', JSON.stringify(tasks));
+
+  if (useSupabase) {
+    try {
+      await Promise.all([
+        sb.from('meetings').delete().neq('id', 0).then(() =>
+          sb.from('meetings').insert({ data: JSON.stringify(meetings) })
+        ),
+        sb.from('tasks').delete().neq('id', 0).then(() =>
+          sb.from('tasks').insert({ data: JSON.stringify(tasks) })
+        )
+      ]);
+    } catch(e) { console.warn('Supabase save failed', e); }
+  }
+}
+
+// ===================== LOGIN =====================
+function doLogin() {
+  const pass = document.getElementById('login-pass').value;
+  if (pass === PASSWORD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    localStorage.setItem('bp_logged', 'true');
+    init();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('bp_logged');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+// ===================== INIT =====================
+async function init() {
+  const now = new Date();
+  const opts = {weekday:'long',year:'numeric',month:'long',day:'numeric'};
+  document.getElementById('header-date').textContent = now.toLocaleDateString('fr-FR', opts);
+  document.getElementById('meeting-date').valueAsDate = now;
+
+  await loadData();
+  renderAll();
+}
+
+// ===================== TABS =====================
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+
+  const tabs = ['capturer','taches','notes'];
+  const idx = tabs.indexOf(tab);
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  document.getElementById('sec-' + tab).classList.add('active');
+}
+
+// ===================== RENDER =====================
+function renderAll() {
+  renderTasks();
+  renderNotes();
+  const saved = currentTab;
+  setTimeout(() => switchTab(saved), 0);
+}
+
+// --- TASKS ---
+function renderTasks() {
+  const bar = document.getElementById('filter-bar');
+  const people = ['all', ...TEAM];
+  bar.innerHTML = people.map(p =>
+    `<button class="filter-btn ${taskFilter===p?'active':''}" onclick="setFilter('${p}')">${p==='all'?'Toutes':p}</button>`
+  ).join('');
+
+  const list = document.getElementById('tasks-list');
+  let filtered = taskFilter === 'all' ? tasks : tasks.filter(t => t.assignee === taskFilter);
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">&#9745;</div>Aucune tâche</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((t, i) => {
+    const realIdx = tasks.indexOf(t);
+    const pClass = 'priority-' + (t.priority || 'normale');
+    return `
+    <div class="task-item">
+      <div class="task-check ${t.done?'done':''}" onclick="toggleTask(${realIdx})"></div>
+      <div class="task-body">
+        <div class="task-desc ${t.done?'done':''}">${esc(t.title || t.desc)}${t.desc && t.title ? ' — ' + esc(t.desc) : ''}</div>
+        <div class="task-meta">
+          <span class="priority-badge ${pClass}">${t.priority || 'normale'}</span>
+          <span>${esc(t.assignee || '')}</span>
+          ${t.deadline ? '<span>' + t.deadline + '</span>' : ''}
+          ${t.meeting ? '<span>via ' + esc(t.meeting) + '</span>' : ''}
+        </div>
+      </div>
+      <div class="task-actions">
+        <button onclick="editTask(${realIdx})">Modifier</button>
+        <button onclick="deleteTask(${realIdx})">Suppr.</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f) {
+  taskFilter = f;
+  renderTasks();
+}
+
+async function toggleTask(idx) {
+  tasks[idx].done = !tasks[idx].done;
+  await saveData();
+  renderTasks();
+}
+
+async function deleteTask(idx) {
+  tasks.splice(idx, 1);
+  await saveData();
+  renderTasks();
+}
+
+function editTask(idx) {
+  const t = tasks[idx];
+  const list = document.getElementById('tasks-list');
+  list.innerHTML = `
+  <div class="form-card">
+    <h2>Modifier la tâche</h2>
+    <div class="form-row">
+      <label>Titre</label>
+      <input type="text" id="edit-task-title" value="${esc(t.title || t.desc)}">
+    </div>
+    <div class="form-row">
+      <label>Description (optionnel)</label>
+      <input type="text" id="edit-task-desc" value="${esc(t.desc || '')}" placeholder="Détails supplémentaires...">
+    </div>
+    <div class="inline-row">
+      <div class="form-row">
+        <label>Priorité</label>
+        <select id="edit-task-priority">
+          <option value="haute" ${t.priority==='haute'?'selected':''}>Haute</option>
+          <option value="normale" ${t.priority==='normale'||!t.priority?'selected':''}>Normale</option>
+          <option value="basse" ${t.priority==='basse'?'selected':''}>Basse</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Assignée à</label>
+        <select id="edit-task-assignee">
+          ${TEAM.map(p=>'<option value="'+p+'" '+(t.assignee===p?'selected':'')+'>'+p+'</option>').join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Échéance</label>
+      <input type="date" id="edit-task-deadline" value="${t.deadline||''}">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="saveEditTask(${idx})">Enregistrer</button>
+      <button class="btn btn-outline" onclick="renderAll()">Annuler</button>
+    </div>
+  </div>`;
+}
+
+async function saveEditTask(idx) {
+  tasks[idx].title = document.getElementById('edit-task-title').value.trim();
+  tasks[idx].desc = document.getElementById('edit-task-desc').value.trim();
+  tasks[idx].priority = document.getElementById('edit-task-priority').value;
+  tasks[idx].assignee = document.getElementById('edit-task-assignee').value;
+  tasks[idx].deadline = document.getElementById('edit-task-deadline').value;
+  await saveData();
+  renderAll();
+}
+
+// --- NOTES (meetings archive) ---
+function renderNotes() {
+  const list = document.getElementById('notes-list');
+  const countEl = document.getElementById('search-count');
+
+  if (meetings.length === 0) {
+    if (countEl) countEl.textContent = '';
+    list.innerHTML = '<div class="empty"><div class="empty-icon">&#128203;</div>Aucune note de réunion</div>';
+    return;
+  }
+
+  // Get search filters
+  const keywordEl = document.getElementById('search-keyword');
+  const dateEl = document.getElementById('search-date');
+  const keyword = keywordEl ? keywordEl.value.trim().toLowerCase() : '';
+  const searchDate = dateEl ? dateEl.value : '';
+
+  // Filter meetings
+  let filtered = meetings.map((m, i) => ({ meeting: m, originalIdx: i }));
+
+  if (searchDate) {
+    filtered = filtered.filter(item => item.meeting.date === searchDate);
+  }
+
+  if (keyword) {
+    filtered = filtered.filter(item => {
+      const m = item.meeting;
+      const searchIn = (m.title + ' ' + m.notes + ' ' + (m.tasks || []).map(t => t.title + ' ' + t.desc + ' ' + t.assignee).join(' ')).toLowerCase();
+      return searchIn.indexOf(keyword) !== -1;
+    });
+  }
+
+  // Show count
+  if (countEl) {
+    if (keyword || searchDate) {
+      countEl.textContent = filtered.length + ' résultat' + (filtered.length !== 1 ? 's' : '') + ' sur ' + meetings.length + ' réunion' + (meetings.length !== 1 ? 's' : '');
+    } else {
+      countEl.textContent = '';
+    }
+  }
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">&#128269;</div>Aucun résultat</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(item => {
+    const m = item.meeting;
+    const i = item.originalIdx;
+
+    // Highlight keyword in title and notes
+    const displayTitle = keyword ? highlightText(esc(m.title), keyword) : esc(m.title);
+    const displayNotes = keyword ? highlightText(esc(m.notes), keyword) : esc(m.notes);
+
+    const taskHtml = (m.tasks && m.tasks.length > 0)
+      ? '<div class="meeting-tasks"><h4>Tâches associées (' + m.tasks.length + ')</h4>' + m.tasks.map(function(t) {
+          const taskName = keyword ? highlightText(esc(t.title || t.desc), keyword) : esc(t.title || t.desc);
+          return '<div class="mini-task"><span>' + taskName + '</span><span class="assignee">' + esc(t.assignee) + '</span></div>';
+        }).join('') + '</div>' : '';
+
+    return '<div class="card">' +
+      '<div class="card-header">' +
+        '<div class="card-title">' + displayTitle + '</div>' +
+        '<div class="card-date">' + (m.date || '') + '</div>' +
+      '</div>' +
+      '<div class="card-notes">' + displayNotes + '</div>' +
+      taskHtml +
+      '<div class="card-actions">' +
+        '<button onclick="editMeeting(' + i + ')">Modifier</button>' +
+        '<button class="danger" onclick="deleteMeeting(' + i + ')">Supprimer</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function highlightText(text, keyword) {
+  if (!keyword) return text;
+  var regex = new RegExp('(' + keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return text.replace(regex, '<mark>$1</mark>');
+}
+
+function clearSearch() {
+  var kw = document.getElementById('search-keyword');
+  var dt = document.getElementById('search-date');
+  if (kw) kw.value = '';
+  if (dt) dt.value = '';
+  renderNotes();
+}
+
+async function deleteMeeting(idx) {
+  meetings.splice(idx, 1);
+  await saveData();
+  renderAll();
+}
+
+function editMeeting(idx) {
+  const m = meetings[idx];
+  const list = document.getElementById('notes-list');
+  list.innerHTML = `
+  <div class="form-card">
+    <h2>Modifier la réunion</h2>
+    <div class="form-row">
+      <label>Titre</label>
+      <input type="text" id="edit-meeting-title" value="${esc(m.title)}">
+    </div>
+    <div class="form-row">
+      <label>Date</label>
+      <input type="date" id="edit-meeting-date" value="${m.date||''}">
+    </div>
+    <div class="form-row">
+      <label>Notes</label>
+      <textarea id="edit-meeting-notes">${esc(m.notes)}</textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-gold" onclick="saveEditMeeting(${idx})">Enregistrer</button>
+      <button class="btn btn-outline" onclick="renderAll()">Annuler</button>
+    </div>
+  </div>`;
+}
+
+async function saveEditMeeting(idx) {
+  meetings[idx].title = document.getElementById('edit-meeting-title').value.trim();
+  meetings[idx].date = document.getElementById('edit-meeting-date').value;
+  meetings[idx].notes = document.getElementById('edit-meeting-notes').value.trim();
+  await saveData();
+  renderAll();
+}
+
+// --- CAPTURER: New meeting + inline tasks ---
+function addTaskToMeeting() {
+  // Auto-fill title from meeting title, date from meeting date
+  const meetingTitle = document.getElementById('meeting-title').value.trim();
+  const meetingDate = document.getElementById('meeting-date').value;
+  tempMeetingTasks.push({
+    title: meetingTitle,
+    desc: '',
+    priority: 'normale',
+    assignee: TEAM[0],
+    deadline: meetingDate
+  });
+  renderMeetingTasks();
+}
+
+function renderMeetingTasks() {
+  const container = document.getElementById('meeting-tasks-container');
+  if (tempMeetingTasks.length === 0) { container.innerHTML = ''; return; }
+
+  container.innerHTML = '<div style="margin-top:16px;"><label style="font-size:12px;font-weight:500;color:var(--soft);text-transform:uppercase;letter-spacing:0.5px;">Tâches</label>' +
+    tempMeetingTasks.map((t, i) => `
+    <div class="add-task-form">
+      <div class="form-row">
+        <label style="font-size:11px;">Titre</label>
+        <input type="text" value="${esc(t.title)}" onchange="tempMeetingTasks[${i}].title=this.value" style="font-weight:500;">
+      </div>
+      <div class="form-row">
+        <label style="font-size:11px;">Description (optionnel)</label>
+        <input type="text" placeholder="Détails supplémentaires..." value="${esc(t.desc)}" onchange="tempMeetingTasks[${i}].desc=this.value">
+      </div>
+      <div class="inline-row">
+        <div class="form-row">
+          <label style="font-size:11px;">Priorité</label>
+          <select onchange="tempMeetingTasks[${i}].priority=this.value">
+            <option value="haute" ${t.priority==='haute'?'selected':''}>Haute</option>
+            <option value="normale" ${t.priority==='normale'?'selected':''}>Normale</option>
+            <option value="basse" ${t.priority==='basse'?'selected':''}>Basse</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label style="font-size:11px;">Assigner à</label>
+          <select onchange="tempMeetingTasks[${i}].assignee=this.value">
+            ${TEAM.map(p=>'<option value="'+p+'" '+(t.assignee===p?'selected':'')+'>'+p+'</option>').join('')}
+          </select>
+        </div>
+        <div class="form-row">
+          <label style="font-size:11px;">Échéance</label>
+          <input type="date" value="${t.deadline}" onchange="tempMeetingTasks[${i}].deadline=this.value">
+        </div>
+      </div>
+      <button class="btn btn-outline" style="margin-top:6px;font-size:11px;padding:4px 12px;" onclick="tempMeetingTasks.splice(${i},1);renderMeetingTasks();">Retirer</button>
+    </div>`).join('') + '</div>';
+}
+
+async function saveMeeting() {
+  const title = document.getElementById('meeting-title').value.trim();
+  const date = document.getElementById('meeting-date').value;
+  const notes = document.getElementById('meeting-notes').value.trim();
+
+  if (!title) { alert('Veuillez entrer un titre.'); return; }
+
+  const meeting = { title, date, notes, tasks: [...tempMeetingTasks], created: new Date().toISOString() };
+  meetings.unshift(meeting);
+
+  // Add tasks to global task list and send emails
+  for (const t of tempMeetingTasks) {
+    const taskTitle = t.title || title;
+    if (taskTitle.trim()) {
+      tasks.unshift({
+        title: taskTitle.trim(),
+        desc: t.desc ? t.desc.trim() : '',
+        priority: t.priority,
+        assignee: t.assignee,
+        deadline: t.deadline,
+        meeting: title,
+        done: false,
+        created: new Date().toISOString()
+      });
+
+      // Auto-email the assignee (if not Dominique and has email)
+      if (t.assignee && t.assignee !== 'Dominique') {
+        await sendTaskEmail(t, taskTitle, title, date);
+      }
+    }
+  }
+
+  await saveData();
+
+  // Reset form
+  document.getElementById('meeting-title').value = '';
+  document.getElementById('meeting-notes').value = '';
+  document.getElementById('meeting-date').valueAsDate = new Date();
+  tempMeetingTasks = [];
+  renderMeetingTasks();
+  renderAll();
+
+  showToast('Réunion enregistrée' + (tempMeetingTasks.length > 0 ? ' — emails envoyés' : ''));
+}
+
+async function sendTaskEmail(task, taskTitle, meetingTitle, meetingDate) {
+  const email = EMAIL_MAP[task.assignee] || '';
+  if (!email) return;
+
+  const subject = 'Tâche: ' + taskTitle;
+  const message =
+    'Bonjour ' + task.assignee + ',\n\n' +
+    'Suite à la réunion "' + meetingTitle + '" du ' + meetingDate + ', je te confie la tâche suivante :\n\n' +
+    taskTitle + (task.desc ? '\n' + task.desc : '') + '\n\n' +
+    'Priorité : ' + task.priority + '\n' +
+    (task.deadline ? 'Échéance : ' + task.deadline + '\n' : '') +
+    '\nMerci,\nDominique';
+
+  if (useEmailJS) {
+    // Auto-send via EmailJS
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email: email,
+        to_name: task.assignee,
+        subject: subject,
+        message: message
+      });
+      showToast('Email envoyé à ' + task.assignee);
+    } catch(e) {
+      console.warn('EmailJS failed, falling back to mailto', e);
+      openMailto(email, subject, message);
+    }
+  } else {
+    // Fallback: open mailto
+    openMailto(email, subject, message);
+  }
+}
+
+function openMailto(email, subject, message) {
+  window.open('mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(message), '_blank');
+}
+
+// ===================== HELPERS =====================
+function esc(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ===================== AI SUMMARY =====================
+function getAIKey() {
+  return localStorage.getItem('bp_openai_key') || '';
+}
+
+function showAISettings() {
+  document.getElementById('ai-key-input').value = getAIKey();
+  document.getElementById('ai-modal').classList.add('show');
+}
+
+function closeAISettings() {
+  document.getElementById('ai-modal').classList.remove('show');
+}
+
+function saveAIKey() {
+  var key = document.getElementById('ai-key-input').value.trim();
+  if (key) {
+    localStorage.setItem('bp_openai_key', key);
+    showToast('Clé API enregistrée');
+  } else {
+    localStorage.removeItem('bp_openai_key');
+  }
+  closeAISettings();
+}
+
+async function summarizeNotes() {
+  var notesField = document.getElementById('meeting-notes');
+  var notes = notesField.value.trim();
+  var title = document.getElementById('meeting-title').value.trim();
+  var lang = document.getElementById('speech-lang').value;
+
+  if (!notes) {
+    showToast('Rien à résumer — dictez ou écrivez des notes d\'abord.');
+    return;
+  }
+
+  var apiKey = getAIKey();
+  if (!apiKey) {
+    showAISettings();
+    showToast('Entrez votre clé API OpenAI pour résumer.');
+    return;
+  }
+
+  // Determine summary language
+  var summaryLang = 'en français';
+  if (lang === 'en-US') summaryLang = 'in English';
+  if (lang === 'he-IL') summaryLang = 'in Hebrew (בעברית)';
+
+  var btn = document.getElementById('summarize-btn');
+  btn.textContent = 'Résumé en cours...';
+  btn.classList.add('loading');
+
+  var prompt = 'You are a professional meeting assistant. Summarize the following meeting notes ' + summaryLang + '. Provide:\n' +
+    '1. A brief summary (2-3 sentences)\n' +
+    '2. Key decisions made\n' +
+    '3. Action items (with who is responsible if mentioned)\n' +
+    '4. Important points to remember\n\n' +
+    'Keep it concise and clear. Use bullet points.\n\n' +
+    (title ? 'Meeting: ' + title + '\n\n' : '') +
+    'Notes:\n' + notes;
+
+  try {
+    var response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 1000
+      })
+    });
+
+    if (!response.ok) {
+      var errData = await response.json().catch(function() { return {}; });
+      if (response.status === 401) {
+        showToast('Clé API invalide. Vérifiez-la dans les paramètres.');
+        showAISettings();
+      } else if (response.status === 429) {
+        showToast('Limite API atteinte. Réessayez dans un instant.');
+      } else {
+        showToast('Erreur API: ' + (errData.error ? errData.error.message : response.status));
+      }
+      btn.textContent = 'Résumer';
+      btn.classList.remove('loading');
+      return;
+    }
+
+    var data = await response.json();
+    var summary = data.choices[0].message.content;
+
+    // Display summary
+    document.getElementById('summary-output').innerHTML =
+      '<div class="summary-box"><h4>Résumé</h4>' + formatSummary(summary) + '</div>';
+
+    btn.textContent = 'Résumer';
+    btn.classList.remove('loading');
+    showToast('Résumé généré');
+
+  } catch(e) {
+    console.error('Summary error:', e);
+    showToast('Erreur de connexion. Vérifiez votre internet.');
+    btn.textContent = 'Résumer';
+    btn.classList.remove('loading');
+  }
+}
+
+function formatSummary(text) {
+  // Convert markdown-style formatting to HTML
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^### (.*$)/gm, '<strong style="font-size:14px;">$1</strong>')
+    .replace(/^## (.*$)/gm, '<strong style="font-size:15px;">$1</strong>')
+    .replace(/^- (.*$)/gm, '• $1')
+    .replace(/\n/g, '<br>');
+}
+
+// ===================== SPEECH RECOGNITION =====================
+let isRecording = false;
+let recognitionInstance = null;
+let finalText = '';
+let restartCount = 0;
+const MAX_RESTARTS = 50;
+
+function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+function setRecordingUI(on) {
+  const btn = document.getElementById('mic-btn');
+  const ind = document.getElementById('rec-indicator');
+  if (on) {
+    btn.classList.add('recording');
+    ind.classList.add('active');
+  } else {
+    btn.classList.remove('recording');
+    ind.classList.remove('active');
+  }
+}
+
+function startRecording() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast('Utilisez Chrome ou Safari pour la dictée.');
+    return;
+  }
+
+  // Set UI immediately so user sees feedback
+  isRecording = true;
+  setRecordingUI(true);
+  restartCount = 0;
+
+  // Grab existing text
+  const notesField = document.getElementById('meeting-notes');
+  finalText = notesField.value;
+  if (finalText && !finalText.endsWith('\n')) finalText += '\n';
+
+  createRecognition();
+}
+
+function createRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  const lang = document.getElementById('speech-lang').value;
+
+  rec.lang = lang;
+  rec.continuous = false;       // Use single-utterance mode (more stable)
+  rec.interimResults = true;
+  rec.maxAlternatives = 1;
+
+  const notesField = document.getElementById('meeting-notes');
+
+  rec.onresult = function(e) {
+    var interim = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      var text = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        finalText += text + ' ';
+        restartCount = 0; // Reset restart counter on successful recognition
+      } else {
+        interim = text;
+      }
+    }
+    notesField.value = finalText + interim;
+    notesField.scrollTop = notesField.scrollHeight;
+  };
+
+  rec.onerror = function(e) {
+    if (e.error === 'no-speech' || e.error === 'aborted') {
+      // Normal — just silence or we stopped it, will auto-restart
+      return;
+    }
+    if (e.error === 'not-allowed') {
+      showToast('Micro bloqué — autorisez l\'accès dans le navigateur.');
+      stopRecording();
+      return;
+    }
+    if (e.error === 'network') {
+      showToast('Erreur réseau — vérifiez votre connexion.');
+      stopRecording();
+      return;
+    }
+    console.warn('Speech error:', e.error);
+  };
+
+  rec.onend = function() {
+    // Auto-restart in single-utterance mode (Chrome stops after each pause)
+    if (isRecording && restartCount < MAX_RESTARTS) {
+      restartCount++;
+      setTimeout(function() {
+        if (isRecording) {
+          try {
+            createRecognition();
+          } catch(err) {
+            console.warn('Restart failed', err);
+            stopRecording();
+          }
+        }
+      }, 100);
+    } else if (restartCount >= MAX_RESTARTS) {
+      stopRecording();
+      showToast('Dictée arrêtée automatiquement (durée max atteinte).');
+    }
+  };
+
+  recognitionInstance = rec;
+
+  try {
+    rec.start();
+    if (restartCount === 0) showToast('Dictée en cours...');
+  } catch(e) {
+    showToast('Impossible de démarrer le micro.');
+    stopRecording();
+  }
+}
+
+function stopRecording() {
+  isRecording = false;
+  if (recognitionInstance) {
+    try { recognitionInstance.abort(); } catch(e) {}
+    recognitionInstance = null;
+  }
+  setRecordingUI(false);
+  restartCount = 0;
+  showToast('Dictée terminée');
+}
+
+// ===================== AUTO-LOGIN =====================
+if (localStorage.getItem('bp_logged') === 'true') {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  init();
+}
+</script>
+</body>
+</html>
